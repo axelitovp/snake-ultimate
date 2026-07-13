@@ -5,23 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Snake Ultimate - Final Version</title>
     <style>
-        body { background-color: #020202; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding-top: 10px; user-select: none; touch-action: none; overflow: hidden; }
-        #header-juego { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 400px; margin-bottom: 10px; z-index: 20; }
+        body { 
+            background-color: #020202; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            margin: 0; padding: 0; user-select: none; touch-action: none; overflow: hidden; 
+            height: 100vh; height: 100dvh; /* 100dvh se adapta a la barra del navegador en móviles */
+        }
+        
+        #header-juego { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 400px; margin-bottom: 5px; z-index: 20; }
         #estadisticas { display: flex; justify-content: space-between; width: 100%; gap: 10px; }
-        .caja-stats { background: #0f0f13; padding: 8px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #222; text-transform: uppercase; flex: 1; text-align: center; font-weight: bold; font-size: 14px; position: relative; overflow: hidden;}
+        .caja-stats { background: #0f0f13; padding: 6px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #222; text-transform: uppercase; flex: 1; text-align: center; font-weight: bold; font-size: 13px; position: relative; overflow: hidden;}
         
         .fiebre-activa { animation: parpadeoFiebre 0.5s infinite alternate; }
         @keyframes parpadeoFiebre { from { box-shadow: 0 0 10px #fff; border-color: #fff; } to { box-shadow: 0 0 25px #ffcc00; border-color: #ffcc00; } }
 
         :root { --color-tema: #00ff88; }
-        .valor-stat { font-size: 20px; display: block; margin-top: 3px; font-variant-numeric: tabular-nums; }
+        .valor-stat { font-size: 18px; display: block; margin-top: 2px; font-variant-numeric: tabular-nums; }
         #puntos { color: var(--color-tema); transition: color 0.5s; }
         #record { color: #ffcc00; }
         #combo-texto { color: #ff4c4c; transition: all 0.2s;}
         
-        #contenedor-barra-combo { width: 100%; height: 6px; background: #222; border-radius: 3px; margin-top: 10px; overflow: hidden; }
+        #contenedor-barra-combo { width: 100%; height: 6px; background: #222; border-radius: 3px; margin-top: 8px; overflow: hidden; }
         #barra-combo { width: 100%; height: 100%; background: #ff4c4c; transition: width 0.1s linear, background-color 0.3s; }
-        #barra-estado { height: 18px; margin-top: 8px; color: #00d4ff; font-weight: bold; font-size: 13px; text-transform: uppercase; text-shadow: 0 0 10px currentColor; visibility: hidden; }
+        #barra-estado { height: 16px; margin-top: 6px; color: #00d4ff; font-weight: bold; font-size: 12px; text-transform: uppercase; text-shadow: 0 0 10px currentColor; visibility: hidden; }
         
         #contenedor-juego { position: relative; width: 100%; max-width: 400px; aspect-ratio: 1 / 1; border: 2px solid #222; border-radius: 8px; box-shadow: 0 0 40px rgba(0, 0, 0, 0.8); overflow: hidden; background: #000; }
         
@@ -39,21 +45,20 @@
         
         .pantalla-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; text-align: center; backdrop-filter: blur(4px); }
         .oculto { display: none !important; }
-        h2 { margin: 0 0 10px 0; font-size: 32px; text-shadow: 0 0 15px currentColor; }
+        h2 { margin: 0 0 10px 0; font-size: 28px; text-shadow: 0 0 15px currentColor; }
         .texto-rojo { color: #ff4c4c; }
         .texto-tema { color: var(--color-tema); transition: color 0.5s;}
-        p { color: #aaa; margin-bottom: 20px; font-size: 14px; padding: 0 10px; }
+        p { color: #aaa; margin-bottom: 15px; font-size: 13px; padding: 0 10px; }
         
-        .botones-dificultad { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-        button.btn-menu { background: #0a0a0c; border: 2px solid #555; padding: 10px 18px; font-size: 14px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; text-transform: uppercase; color: #fff; }
+        .botones-dificultad { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        button.btn-menu { background: #0a0a0c; border: 2px solid #555; padding: 10px 16px; font-size: 13px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; text-transform: uppercase; color: #fff; }
         .btn-facil { border-color: #00ff88; color: #00ff88; } .btn-facil:hover { background: #00ff88; color: #000; box-shadow: 0 0 15px #00ff88; }
         .btn-normal { border-color: #ffcc00; color: #ffcc00; } .btn-normal:hover { background: #ffcc00; color: #000; box-shadow: 0 0 15px #ffcc00; }
         .btn-dificil { border-color: #ff4c4c; color: #ff4c4c; } .btn-dificil:hover { background: #ff4c4c; color: #000; box-shadow: 0 0 15px #ff4c4c; }
         button.btn-menu:active { transform: scale(0.95); }
 
-        .descripcion-modo { min-height: 40px; margin-top: 15px; color: #888; font-size: 13px; font-style: italic; padding: 0 20px; transition: color 0.3s; }
+        .descripcion-modo { min-height: 35px; margin-top: 10px; color: #888; font-size: 12px; font-style: italic; padding: 0 15px; transition: color 0.3s; }
         
-        /* NUEVA CRUCETA D-PAD PARA MÓVILES */
         #controles-moviles { 
             display: none; 
             grid-template-columns: 60px 60px 60px; 
@@ -74,11 +79,18 @@
         #btn-right { grid-column: 3; grid-row: 2; border-radius: 5px 10px 10px 5px; }
         #btn-down { grid-column: 2; grid-row: 3; border-radius: 5px 5px 10px 10px; }
         
-        /* Oculta los controles si la pantalla es ancha (PC) */
+        /* === AJUSTES DINÁMICOS PARA CELULARES === */
         @media (max-width: 600px) { 
-            #controles-moviles { display: grid; } 
-            body { padding-top: 5px; } 
-            #contenedor-juego { max-width: 95vw; }
+            #controles-moviles { 
+                display: grid; 
+                /* Botones un poco más compactos */
+                grid-template-columns: 55px 55px 55px; 
+                grid-template-rows: 55px 55px 55px; 
+                gap: 6px; margin-top: 10px; 
+            } 
+            .btn-dpad { font-size: 24px; }
+            /* TRUCO MÁGICO: El lienzo y header nunca superarán el 45% de la pantalla para dejar espacio abajo */
+            #contenedor-juego, #header-juego { max-width: min(95vw, 45vh); }
         }
     </style>
 </head>
@@ -448,10 +460,15 @@
             snake.forEach(parte => { activarParticulas(parte.x, parte.y, colorActual, 5, 1.5, 3); }); snake = []; 
             dibujarCapaFrente(performance.now()); reproducirSonido('perder'); 
             cajaComboDOM.classList.remove('fiebre-activa'); capaOscuridad.style.opacity = "0";
+            
             setTimeout(() => { 
                 let textoFinal = `Puntos: ${puntos} | Combo Max: x${multiplicadorCombo}`;
-                if (puntos > record) { record = puntos; localStorage.setItem("snakeRecordUltimateDef", record); recDOM.innerText = record; textoFinal = `🏆 ¡NUEVO RÉCORD! 🏆<br>${puntos} puntos`; }
-                document.getElementById("texto-puntaje-final").innerHTML = textoFinal; document.getElementById("pantalla-fin").classList.remove("oculto"); 
+                if (puntos > record) {
+                    record = puntos; localStorage.setItem("snakeRecordUltimateDef", record); recDOM.innerText = record;
+                    textoFinal = `🏆 ¡NUEVO RÉCORD! 🏆<br>${puntos} puntos`;
+                }
+                document.getElementById("texto-puntaje-final").innerHTML = textoFinal; 
+                document.getElementById("pantalla-fin").classList.remove("oculto"); 
             }, 1000); 
         }
 
@@ -480,7 +497,9 @@
             document.getElementById(id).addEventListener('touchstart', (e) => {
                 e.preventDefault(); if (enPausa || !enJuego) return;
                 let ref = colaInputs.length > 0 ? colaInputs[colaInputs.length - 1] : {dx: dx, dy: dy};
-                if ((bDx !== 0 && ref.dx === 0) || (bDy !== 0 && ref.dy === 0)) { if (colaInputs.length < 2) colaInputs.push({dx: bDx, dy: bDy}); }
+                if ((bDx !== 0 && ref.dx === 0) || (bDy !== 0 && ref.dy === 0)) {
+                    if (colaInputs.length < 2) colaInputs.push({dx: bDx, dy: bDy});
+                }
             }, {passive: false});
         };
         vincularBotonMobile('btn-up', 0, -tamañoCuadro); vincularBotonMobile('btn-down', 0, tamañoCuadro);
