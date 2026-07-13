@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Snake Ultimate - Final Version</title>
+    <style>
+        body { background-color: #020202; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding-top: 10px; user-select: none; touch-action: none; overflow: hidden; }
+        #header-juego { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 400px; margin-bottom: 10px; z-index: 20; }
+        #estadisticas { display: flex; justify-content: space-between; width: 100%; gap: 10px; }
+        .caja-stats { background: #0f0f13; padding: 8px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #222; text-transform: uppercase; flex: 1; text-align: center; font-weight: bold; font-size: 14px; position: relative; overflow: hidden;}
+        
+        .fiebre-activa { animation: parpadeoFiebre 0.5s infinite alternate; }
+        @keyframes parpadeoFiebre { from { box-shadow: 0 0 10px #fff; border-color: #fff; } to { box-shadow: 0 0 25px #ffcc00; border-color: #ffcc00; } }
+
+        :root { --color-tema: #00ff88; }
+        .valor-stat { font-size: 20px; display: block; margin-top: 3px; font-variant-numeric: tabular-nums; }
+        #puntos { color: var(--color-tema); transition: color 0.5s; }
+        #record { color: #ffcc00; }
+        #combo-texto { color: #ff4c4c; transition: all 0.2s;}
+        
+        #contenedor-barra-combo { width: 100%; height: 6px; background: #222; border-radius: 3px; margin-top: 10px; overflow: hidden; }
+        #barra-combo { width: 100%; height: 100%; background: #ff4c4c; transition: width 0.1s linear, background-color 0.3s; }
+        #barra-estado { height: 18px; margin-top: 8px; color: #00d4ff; font-weight: bold; font-size: 13px; text-transform: uppercase; text-shadow: 0 0 10px currentColor; visibility: hidden; }
+        
+        #contenedor-juego { position: relative; width: 100%; max-width: 400px; aspect-ratio: 1 / 1; border: 2px solid #222; border-radius: 8px; box-shadow: 0 0 40px rgba(0, 0, 0, 0.8); overflow: hidden; background: #000; }
+        
+        #capa-oscuridad { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; transition: opacity 0.5s; opacity: 0; background: rgba(0, 0, 0, 0.98); }
+
+        #contenedor-juego::after {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 5; background-size: 100% 3px, 3px 100%; pointer-events: none; box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+        }
+
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        #canvas-fondo { z-index: 1; }
+        #canvas-frente { z-index: 2; }
+        
+        .pantalla-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; text-align: center; backdrop-filter: blur(4px); }
+        .oculto { display: none !important; }
+        h2 { margin: 0 0 10px 0; font-size: 32px; text-shadow: 0 0 15px currentColor; }
+        .texto-rojo { color: #ff4c4c; }
+        .texto-tema { color: var(--color-tema); transition: color 0.5s;}
+        p { color: #aaa; margin-bottom: 20px; font-size: 14px; padding: 0 10px; }
+        
+        .botones-dificultad { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        button.btn-menu { background: #0a0a0c; border: 2px solid #555; padding: 10px 18px; font-size: 14px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; text-transform: uppercase; color: #fff; }
+        .btn-facil { border-color: #00ff88; color: #00ff88; } .btn-facil:hover { background: #00ff88; color: #000; box-shadow: 0 0 15px #00ff88; }
+        .btn-normal { border-color: #ffcc00; color: #ffcc00; } .btn-normal:hover { background: #ffcc00; color: #000; box-shadow: 0 0 15px #ffcc00; }
+        .btn-dificil { border-color: #ff4c4c; color: #ff4c4c; } .btn-dificil:hover { background: #ff4c4c; color: #000; box-shadow: 0 0 15px #ff4c4c; }
+        button.btn-menu:active { transform: scale(0.95); }
+
+        .descripcion-modo { min-height: 40px; margin-top: 15px; color: #888; font-size: 13px; font-style: italic; padding: 0 20px; transition: color 0.3s; }
+        
+        /* NUEVA CRUCETA D-PAD PARA MÓVILES */
+        #controles-moviles { 
+            display: none; 
+            grid-template-columns: 60px 60px 60px; 
+            grid-template-rows: 60px 60px 60px; 
+            gap: 5px; margin-top: 15px; z-index: 30; 
+            justify-content: center;
+        }
+        .btn-dpad { 
+            background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(255, 255, 255, 0.15); 
+            color: rgba(255, 255, 255, 0.8); font-size: 28px; border-radius: 10px; 
+            display: flex; justify-content: center; align-items: center; cursor: pointer; touch-action: none; 
+            transition: background 0.1s;
+        }
+        .btn-dpad:active { background: var(--color-tema); color: #000; border-color: var(--color-tema); transform: scale(0.95); }
+        
+        #btn-up { grid-column: 2; grid-row: 1; border-radius: 10px 10px 5px 5px; } 
+        #btn-left { grid-column: 1; grid-row: 2; border-radius: 10px 5px 5px 10px; } 
+        #btn-right { grid-column: 3; grid-row: 2; border-radius: 5px 10px 10px 5px; }
+        #btn-down { grid-column: 2; grid-row: 3; border-radius: 5px 5px 10px 10px; }
+        
+        /* Oculta los controles si la pantalla es ancha (PC) */
+        @media (max-width: 600px) { 
+            #controles-moviles { display: grid; } 
+            body { padding-top: 5px; } 
+            #contenedor-juego { max-width: 95vw; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header-juego">
+        <div id="estadisticas">
+            <div class="caja-stats">Puntos <span id="puntos" class="valor-stat">0</span></div>
+            <div class="caja-stats" id="caja-combo">Combo <span id="combo-texto" class="valor-stat">x1</span></div>
+            <div class="caja-stats">Récord <span id="record" class="valor-stat">0</span></div>
+        </div>
+        <div id="contenedor-barra-combo"><div id="barra-combo"></div></div>
+        <div id="barra-estado">...</div>
+    </div>
+
+    <div id="contenedor-juego">
+        <canvas id="canvas-fondo"></canvas>
+        <canvas id="canvas-frente"></canvas>
+        <div id="capa-oscuridad"></div> 
+        
+        <div id="pantalla-inicio" class="pantalla-overlay">
+            <h2 class="texto-tema">SNAKE ARCADE</h2>
+            <p>Selecciona una dificultad:</p>
+            <div class="botones-dificultad">
+                <button class="btn-menu btn-facil" onmouseenter="mostrarInfo('facil', 'inicio')" onmouseleave="ocultarInfo('inicio')" onclick="empezarJuego('facil')">Fácil</button>
+                <button class="btn-menu btn-normal" onmouseenter="mostrarInfo('normal', 'inicio')" onmouseleave="ocultarInfo('inicio')" onclick="empezarJuego('normal')">Normal</button>
+                <button class="btn-menu btn-dificil" onmouseenter="mostrarInfo('dificil', 'inicio')" onmouseleave="ocultarInfo('inicio')" onclick="empezarJuego('dificil')">Difícil</button>
+            </div>
+            <p id="desc-inicio" class="descripcion-modo"></p>
+        </div>
+
+        <div id="pantalla-pausa" class="pantalla-overlay oculto">
+            <h2 style="color: white;">PAUSA</h2>
+            <p>Toca la pantalla del juego o presiona Espacio</p>
+        </div>
+
+        <div id="pantalla-fin" class="pantalla-overlay oculto">
+            <h2 class="texto-rojo">¡GAME OVER!</h2>
+            <p id="texto-puntaje-final" style="margin-bottom: 10px;">Lograste 0 puntos.</p>
+            <div class="botones-dificultad">
+                <button class="btn-menu btn-facil" onmouseenter="mostrarInfo('facil', 'fin')" onmouseleave="ocultarInfo('fin')" onclick="empezarJuego('facil')">Fácil</button>
+                <button class="btn-menu btn-normal" onmouseenter="mostrarInfo('normal', 'fin')" onmouseleave="ocultarInfo('fin')" onclick="empezarJuego('normal')">Normal</button>
+                <button class="btn-menu btn-dificil" onmouseenter="mostrarInfo('dificil', 'fin')" onmouseleave="ocultarInfo('fin')" onclick="empezarJuego('dificil')">Difícil</button>
+            </div>
+            <p id="desc-fin" class="descripcion-modo"></p>
+        </div>
+    </div>
+
+    <div id="controles-moviles">
+        <div class="btn-dpad" id="btn-up">▲</div>
+        <div class="btn-dpad" id="btn-left">◀</div>
+        <div class="btn-dpad" id="btn-right">▶</div>
+        <div class="btn-dpad" id="btn-down">▼</div>
+    </div>
+
+    <script>
+        const textosDificultad = { 
+            facil: "Velocidad relajada y sin muros. Ideal para practicar.", 
+            normal: "El desafío clásico. Velocidad estándar y obstáculos dinámicos.", 
+            dificil: "Velocidad extrema, muros, veneno y apagones. Un verdadero desafío." 
+        };
+        
+        function mostrarInfo(modo, pantalla) { 
+            const el = document.getElementById("desc-" + pantalla); el.innerText = textosDificultad[modo]; 
+            if (modo === 'facil') el.style.color = '#00ff88'; else if (modo === 'normal') el.style.color = '#ffcc00'; else if (modo === 'dificil') el.style.color = '#ff4c4c'; 
+        }
+        function ocultarInfo(pantalla) { const el = document.getElementById("desc-" + pantalla); el.innerText = ""; el.style.color = '#888'; }
+
+        const cvsBg = document.getElementById("canvas-fondo"); const ctxBg = cvsBg.getContext("2d", { alpha: false }); 
+        const cvsFg = document.getElementById("canvas-frente"); const ctxFg = cvsFg.getContext("2d"); 
+        const tamañoCuadro = 20; const resBase = 400; 
+
+        function ajustarResolucion(canvas, ctx) { const dpr = window.devicePixelRatio || 1; canvas.width = resBase * dpr; canvas.height = resBase * dpr; ctx.scale(dpr, dpr); }
+        ajustarResolucion(cvsBg, ctxBg); ajustarResolucion(cvsFg, ctxFg);
+
+        const ptosDOM = document.getElementById("puntos"); const recDOM = document.getElementById("record");
+        const comboDOM = document.getElementById("combo-texto"); const barraCombo = document.getElementById("barra-combo");
+        const cajaComboDOM = document.getElementById("caja-combo");
+        const rootCSS = document.documentElement; const barraEstado = document.getElementById("barra-estado");
+        const capaOscuridad = document.getElementById("capa-oscuridad");
+        const coloresNivel = ["#00ff88", "#00d4ff", "#b500ff", "#ff0055", "#ffaa00", "#ffffff"];
+
+        let colaInputs = [];
+        let snake, dx, dy, comida, comidaDorada, comidaVeneno, powerUpFantasma, obstaculos, portalA, portalB;
+        let puntos, multiplicadorCombo, tiempoComboRestante, maxTiempoCombo;
+        let velocidad, animacionID, ultimoTiempoLogica, ultimoTiempoRender;
+        let enJuego = false, enPausa = false, vibracionPantalla = 0; 
+        
+        let dificultadActual = 'normal'; 
+        let freqObstaculos = 100, velocidadMinima = 60, tiempoFantasmaRestante = 0, tiempoApagon = 0;
+
+        let record = localStorage.getItem("snakeRecordUltimateDef") || 0; recDOM.innerText = record;
+        let colorActual = coloresNivel[0];
+
+        const POOL_SIZE = 250;
+        const poolParticulas = Array.from({length: POOL_SIZE}, () => ({ activa: false, x: 0, y: 0, vx: 0, vy: 0, vida: 0, color: "", tam: 2.5 }));
+        function activarParticulas(x, y, colorBase, cantidad = 15, velMult = 1, tamP = 2.5) {
+            let activadas = 0;
+            for(let i = 0; i < POOL_SIZE && activadas < cantidad; i++) {
+                if(!poolParticulas[i].activa) {
+                    let p = poolParticulas[i]; p.activa = true; p.x = x + tamañoCuadro/2; p.y = y + tamañoCuadro/2;
+                    p.vx = (Math.random() - 0.5) * 8 * velMult; p.vy = (Math.random() - 0.5) * 8 * velMult; p.vida = 1.0; p.color = colorBase; p.tam = tamP; activadas++;
+                }
+            }
+        }
+
+        let textosFlotantes = [];
+        function agregarTextoFlotante(x, y, texto, color) { textosFlotantes.push({ x: x + tamañoCuadro/2, y: y, texto: texto, color: color, vida: 1.0 }); }
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext; let audioCtx;
+        let proximoLatido = 0;
+        
+        function inicializarAudio() { if (!audioCtx) { audioCtx = new AudioContext(); audioCtx.resume(); } }
+        
+        function gestionarLatidoBackground(tiempoActual) {
+            if (!audioCtx || !enJuego || enPausa) return;
+            let delayLatido = Math.max(300, velocidad * 3.5); 
+            if (tiempoActual > proximoLatido) {
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination); const t = audioCtx.currentTime;
+                osc.type = 'sine'; osc.frequency.setValueAtTime(80, t); osc.frequency.exponentialRampToValueAtTime(30, t + 0.2);
+                gain.gain.setValueAtTime(0.15, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+                osc.start(t); osc.stop(t + 0.2); proximoLatido = tiempoActual + delayLatido;
+            }
+        }
+
+        function reproducirSonido(tipo, pitchMod = 1) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); const t = audioCtx.currentTime;
+            if (tipo === 'comer') { osc.type = 'sine'; osc.frequency.setValueAtTime(600 * pitchMod, t); osc.frequency.exponentialRampToValueAtTime(1200 * pitchMod, t + 0.1); gain.gain.setValueAtTime(0.1, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1); osc.start(t); osc.stop(t + 0.1); } 
+            else if (tipo === 'bonus') { osc.type = 'square'; osc.frequency.setValueAtTime(400, t); osc.frequency.setValueAtTime(800, t + 0.2); gain.gain.setValueAtTime(0.1, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.3); osc.start(t); osc.stop(t + 0.3); } 
+            else if (tipo === 'fantasma') { osc.type = 'triangle'; osc.frequency.setValueAtTime(300, t); osc.frequency.linearRampToValueAtTime(900, t + 0.4); gain.gain.setValueAtTime(0.15, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.4); osc.start(t); osc.stop(t + 0.4); } 
+            else if (tipo === 'portal') { osc.type = 'sine'; osc.frequency.setValueAtTime(800, t); osc.frequency.exponentialRampToValueAtTime(200, t + 0.3); gain.gain.setValueAtTime(0.2, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3); osc.start(t); osc.stop(t + 0.3); }
+            else if (tipo === 'apagon') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, t); osc.frequency.exponentialRampToValueAtTime(10, t + 1); gain.gain.setValueAtTime(0.4, t); gain.gain.linearRampToValueAtTime(0.01, t + 1); osc.start(t); osc.stop(t + 1); }
+            else if (tipo === 'veneno') { osc.type = 'square'; osc.frequency.setValueAtTime(200, t); osc.frequency.linearRampToValueAtTime(50, t + 0.5); gain.gain.setValueAtTime(0.3, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.5); osc.start(t); osc.stop(t + 0.5); }
+            else if (tipo === 'perder') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, t); osc.frequency.exponentialRampToValueAtTime(20, t + 0.6); gain.gain.setValueAtTime(0.4, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.6); osc.start(t); osc.stop(t + 0.6); }
+        }
+
+        function empezarJuego(dificultad) {
+            inicializarAudio(); document.querySelectorAll('.pantalla-overlay').forEach(e => e.classList.add('oculto'));
+            snake = [{x: 200, y: 200}, {x: 180, y: 200}, {x: 160, y: 200}];
+            obstaculos = []; comidaDorada = null; powerUpFantasma = null; portalA = null; portalB = null; comidaVeneno = null;
+            poolParticulas.forEach(p => p.activa = false); textosFlotantes = [];
+            colaInputs = []; dx = tamañoCuadro; dy = 0; puntos = 0; vibracionPantalla = 0; 
+            tiempoFantasmaRestante = 0; tiempoApagon = 0; capaOscuridad.style.opacity = "0";
+            multiplicadorCombo = 1; maxTiempoCombo = 4500; tiempoComboRestante = maxTiempoCombo; 
+            enJuego = true; enPausa = false; colorActual = coloresNivel[0];
+            cajaComboDOM.classList.remove('fiebre-activa'); proximoLatido = performance.now();
+            
+            dificultadActual = dificultad;
+            if (dificultad === 'facil') { velocidad = 150; velocidadMinima = 90; freqObstaculos = 999999; } 
+            else if (dificultad === 'normal') { velocidad = 130; velocidadMinima = 60; freqObstaculos = 100; } 
+            else if (dificultad === 'dificil') { velocidad = 90; velocidadMinima = 35; freqObstaculos = 50; }
+
+            actualizarUI(); generarComida(); dibujarFondoEstatico(); 
+            
+            let tActual = performance.now(); ultimoTiempoLogica = tActual; ultimoTiempoRender = tActual;
+            if (animacionID) cancelAnimationFrame(animacionID); animacionID = requestAnimationFrame(buclePrincipal);
+        }
+
+        function posAleatoria() { return { x: Math.floor(Math.random() * (resBase / tamañoCuadro)) * tamañoCuadro, y: Math.floor(Math.random() * (resBase / tamañoCuadro)) * tamañoCuadro }; }
+        function posOcupada(p) { 
+            return snake.some(s => s.x===p.x && s.y===p.y) || obstaculos.some(o => o.x===p.x && o.y===p.y) || 
+                   (comida && comida.x===p.x && comida.y===p.y) || (comidaDorada && comidaDorada.x===p.x && comidaDorada.y===p.y) || 
+                   (powerUpFantasma && powerUpFantasma.x===p.x && powerUpFantasma.y===p.y) ||
+                   (portalA && portalA.x===p.x && portalA.y===p.y) || (portalB && portalB.x===p.x && portalB.y===p.y) ||
+                   (comidaVeneno && comidaVeneno.x===p.x && comidaVeneno.y===p.y); 
+        }
+        
+        function generarComida() {
+            let nC; do { nC = posAleatoria(); } while (posOcupada(nC)); comida = nC;
+            if (!comidaDorada && Math.random() < 0.15) { let nD; do { nD = posAleatoria(); } while (posOcupada(nD)); comidaDorada = nD; }
+            if (!powerUpFantasma && tiempoFantasmaRestante <= 0 && Math.random() < 0.10) { let nF; do { nF = posAleatoria(); } while (posOcupada(nF)); powerUpFantasma = nF; }
+            if (dificultadActual === 'dificil' && !comidaVeneno && Math.random() < 0.20) { let nV; do { nV = posAleatoria(); } while (posOcupada(nV)); comidaVeneno = nV; }
+            if (puntos >= 50 && !portalA && Math.random() < 0.30) {
+                let pA; do { pA = posAleatoria(); } while (posOcupada(pA)); portalA = pA;
+                let pB; do { pB = posAleatoria(); } while (posOcupada(pB)); portalB = pB;
+            }
+        }
+        
+        function generarObstaculo() { 
+            let nO; let pX = snake[0].x + dx, pY = snake[0].y + dy;
+            do { nO = posAleatoria(); } while (posOcupada(nO) || (nO.x === pX && nO.y === pY)); 
+            obstaculos.push(nO); dibujarFondoEstatico(); 
+        }
+
+        function actualizarUI() {
+            ptosDOM.innerText = puntos; comboDOM.innerText = `x${multiplicadorCombo}`;
+            let esFiebre = multiplicadorCombo === 5;
+            if (esFiebre) { comboDOM.style.color = "#fff"; barraCombo.style.backgroundColor = "#fff"; cajaComboDOM.classList.add('fiebre-activa'); } 
+            else {
+                cajaComboDOM.classList.remove('fiebre-activa');
+                if(multiplicadorCombo >= 4) { comboDOM.style.color = "#b500ff"; barraCombo.style.backgroundColor = "#b500ff"; } 
+                else if(multiplicadorCombo >= 2) { comboDOM.style.color = "#ffcc00"; barraCombo.style.backgroundColor = "#ffcc00"; } 
+                else { comboDOM.style.color = "#ff4c4c"; barraCombo.style.backgroundColor = "#ff4c4c"; }
+            }
+            let nivel = Math.min(Math.floor(puntos / 150), coloresNivel.length - 1); 
+            colorActual = esFiebre ? "#ffffff" : coloresNivel[nivel]; rootCSS.style.setProperty('--color-tema', colorActual);
+        }
+
+        function dibujarFondoEstatico() {
+            ctxBg.fillStyle = "#020202"; ctxBg.fillRect(0, 0, resBase, resBase);
+            ctxBg.strokeStyle = "#0a0a0f"; ctxBg.lineWidth = 1;
+            for(let i=0; i<=resBase; i+=tamañoCuadro) { ctxBg.beginPath(); ctxBg.moveTo(i,0); ctxBg.lineTo(i,resBase); ctxBg.stroke(); ctxBg.beginPath(); ctxBg.moveTo(0,i); ctxBg.lineTo(resBase,i); ctxBg.stroke(); }
+            ctxBg.fillStyle = "#222"; obstaculos.forEach(o => { ctxBg.fillRect(o.x, o.y, tamañoCuadro, tamañoCuadro); ctxBg.strokeStyle="#111"; ctxBg.strokeRect(o.x, o.y, tamañoCuadro, tamañoCuadro); });
+        }
+
+        function buclePrincipal(tiempoActual) {
+            if (!enJuego || enPausa) return;
+            animacionID = requestAnimationFrame(buclePrincipal);
+            const deltaRender = tiempoActual - ultimoTiempoRender; ultimoTiempoRender = tiempoActual;
+            
+            gestionarLatidoBackground(tiempoActual);
+
+            let esFiebre = multiplicadorCombo === 5;
+            if (tiempoApagon > 0) {
+                tiempoApagon -= deltaRender; capaOscuridad.style.opacity = "1";
+                let pctX = ((snake[0].x + 10) / resBase) * 100; let pctY = ((snake[0].y + 10) / resBase) * 100;
+                capaOscuridad.style.background = `radial-gradient(circle at ${pctX}% ${pctY}%, transparent 15%, rgba(0,0,0,0.98) 35%)`;
+                barraEstado.style.visibility = "visible"; barraEstado.style.color = "#fff"; barraEstado.innerText = "¡APAGÓN!";
+            } else { capaOscuridad.style.opacity = "0"; }
+
+            if (tiempoApagon <= 0) {
+                if (tiempoFantasmaRestante > 0 || esFiebre) { 
+                    if (!esFiebre) tiempoFantasmaRestante -= deltaRender; 
+                    barraEstado.style.visibility = "visible"; barraEstado.style.color = esFiebre ? "#ffcc00" : "#00d4ff";
+                    barraEstado.innerText = esFiebre ? "🔥 MODO FIEBRE ACTIVO 🔥" : `👻 FANTASMA: ${(Math.max(0, tiempoFantasmaRestante)/1000).toFixed(1)}s`; 
+                } else { barraEstado.style.visibility = "hidden"; }
+            }
+
+            if (tiempoComboRestante > 0) { 
+                tiempoComboRestante -= deltaRender; barraCombo.style.width = `${(tiempoComboRestante / maxTiempoCombo) * 100}%`; 
+                if (tiempoComboRestante <= 0 && multiplicadorCombo > 1) { multiplicadorCombo = 1; actualizarUI(); } 
+            }
+
+            const deltaLogica = tiempoActual - ultimoTiempoLogica;
+            if (deltaLogica > velocidad) { actualizarLogicaSnake(); ultimoTiempoLogica = tiempoActual; }
+            dibujarCapaFrente(tiempoActual);
+        }
+
+        function actualizarLogicaSnake() {
+            if (colaInputs.length > 0) { let siguienteMovimiento = colaInputs.shift(); dx = siguienteMovimiento.dx; dy = siguienteMovimiento.dy; }
+
+            let nCab = {x: snake[0].x + dx, y: snake[0].y + dy};
+            let esFiebre = multiplicadorCombo === 5; let esFantasma = tiempoFantasmaRestante > 0 || esFiebre;
+
+            if (portalA && portalB) {
+                if (nCab.x === portalA.x && nCab.y === portalA.y) {
+                    nCab.x = portalB.x; nCab.y = portalB.y; reproducirSonido('portal'); activarParticulas(portalB.x, portalB.y, "#ff6600"); 
+                    agregarTextoFlotante(portalB.x, portalB.y, "WOOSH!", "#ff6600"); portalA = null; portalB = null; 
+                } else if (nCab.x === portalB.x && nCab.y === portalB.y) {
+                    nCab.x = portalA.x; nCab.y = portalA.y; reproducirSonido('portal'); activarParticulas(portalA.x, portalA.y, "#0066ff"); 
+                    agregarTextoFlotante(portalA.x, portalA.y, "WOOSH!", "#0066ff"); portalA = null; portalB = null;
+                }
+            }
+
+            if (esFantasma) {
+                if (nCab.x < 0) nCab.x = resBase - tamañoCuadro; else if (nCab.x >= resBase) nCab.x = 0;
+                if (nCab.y < 0) nCab.y = resBase - tamañoCuadro; else if (nCab.y >= resBase) nCab.y = 0;
+            } else {
+                if (nCab.x < 0 || nCab.x >= resBase || nCab.y < 0 || nCab.y >= resBase) { finJuego(); return; }
+            }
+
+            let indexCola = snake.length - 1;
+            if (snake.some((s,i) => i > 0 && i !== indexCola && s.x === nCab.x && s.y === nCab.y)) { finJuego(); return; }
+            if (!esFantasma && obstaculos.some(o => o.x === nCab.x && o.y === nCab.y)) { finJuego(); return; }
+
+            snake.unshift(nCab); let comio = false;
+
+            if (nCab.x === comida.x && nCab.y === comida.y) {
+                let esFiebreNueva = (multiplicadorCombo === 4); 
+                reproducirSonido('comer', 1 + (multiplicadorCombo * 0.05)); activarParticulas(comida.x, comida.y, "#ff4c4c");
+                
+                let ptsGanados = 10 * multiplicadorCombo * (esFiebreNueva || esFiebre ? 3 : 1);
+                puntos += ptsGanados; comio = true;
+                
+                if (esFiebreNueva) agregarTextoFlotante(comida.x, comida.y, "¡FIEBRE!", "#fff");
+                else agregarTextoFlotante(comida.x, comida.y, `+${ptsGanados}`, "#00ff88");
+
+                if (multiplicadorCombo < 5) multiplicadorCombo++; tiempoComboRestante = maxTiempoCombo; 
+                if (velocidad > velocidadMinima) velocidad -= 2; 
+                if (puntos > 0 && Math.floor(puntos / freqObstaculos) > Math.floor((puntos - 10) / freqObstaculos)) generarObstaculo();
+                if (dificultadActual === 'dificil' && Math.random() < 0.05 && tiempoApagon <= 0) { tiempoApagon = 8000; reproducirSonido('apagon'); }
+                generarComida(); actualizarUI();
+            } 
+            else if (comidaDorada && nCab.x === comidaDorada.x && nCab.y === comidaDorada.y) {
+                reproducirSonido('bonus'); activarParticulas(comidaDorada.x, comidaDorada.y, "#ffcc00");
+                let ptsGanados = 50 * multiplicadorCombo * (esFiebre ? 3 : 1);
+                puntos += ptsGanados; comio = true; vibracionPantalla = 15; tiempoComboRestante = maxTiempoCombo;
+                agregarTextoFlotante(comidaDorada.x, comidaDorada.y, `+${ptsGanados}`, "#ffcc00");
+                if (velocidad < 140) velocidad += 10; comidaDorada = null; actualizarUI();
+            }
+            else if (powerUpFantasma && nCab.x === powerUpFantasma.x && nCab.y === powerUpFantasma.y) {
+                reproducirSonido('fantasma'); activarParticulas(powerUpFantasma.x, powerUpFantasma.y, "#00d4ff");
+                tiempoFantasmaRestante = 5000; comio = true; powerUpFantasma = null;
+                agregarTextoFlotante(nCab.x, nCab.y, "FANTASMA", "#00d4ff");
+            }
+            else if (comidaVeneno && nCab.x === comidaVeneno.x && nCab.y === comidaVeneno.y) {
+                reproducirSonido('veneno'); activarParticulas(comidaVeneno.x, comidaVeneno.y, "#a600ff");
+                puntos = Math.max(0, puntos - 30); multiplicadorCombo = 1; tiempoComboRestante = 0;
+                vibracionPantalla = 30; comio = true; comidaVeneno = null; actualizarUI();
+                agregarTextoFlotante(nCab.x, nCab.y, "-30", "#ff4c4c");
+            }
+
+            if (!comio) snake.pop();
+        }
+
+        function dibujarCapaFrente(tiempoActual) {
+            ctxFg.globalCompositeOperation = "destination-out"; ctxFg.fillStyle = "rgba(0, 0, 0, 0.4)"; ctxFg.fillRect(0, 0, resBase, resBase); ctxFg.globalCompositeOperation = "source-over"; 
+            ctxFg.save(); 
+            if (vibracionPantalla > 0) { let mag = (vibracionPantalla / 15) * 6; ctxFg.translate((Math.random() - 0.5) * mag, (Math.random() - 0.5) * mag); vibracionPantalla--; }
+
+            if (portalA && portalB) {
+                let osc = tiempoActual / 150; ctxFg.lineWidth = 2;
+                ctxFg.shadowBlur = 15; ctxFg.shadowColor = "#0066ff"; ctxFg.strokeStyle = "#0066ff"; ctxFg.beginPath(); ctxFg.arc(portalA.x+10, portalA.y+10, 7 + Math.sin(osc)*2, 0, Math.PI*2); ctxFg.stroke();
+                ctxFg.shadowColor = "#ff6600"; ctxFg.strokeStyle = "#ff6600"; ctxFg.beginPath(); ctxFg.arc(portalB.x+10, portalB.y+10, 7 + Math.cos(osc)*2, 0, Math.PI*2); ctxFg.stroke();
+            }
+
+            ctxFg.shadowBlur = 15; ctxFg.shadowColor = "#ff4c4c"; ctxFg.fillStyle = "#ff4c4c"; ctxFg.beginPath(); ctxFg.arc(comida.x+10, comida.y+10, 8, 0, Math.PI*2); ctxFg.fill();
+            if (comidaDorada) { ctxFg.shadowColor = "#ffcc00"; ctxFg.fillStyle = "#ffcc00"; ctxFg.beginPath(); ctxFg.arc(comidaDorada.x+10, comidaDorada.y+10, 8, 0, Math.PI*2); ctxFg.fill(); }
+            if (powerUpFantasma) { ctxFg.shadowColor = "#00d4ff"; ctxFg.fillStyle = "#00d4ff"; ctxFg.beginPath(); ctxFg.arc(powerUpFantasma.x+10, powerUpFantasma.y+10, 8, 0, Math.PI*2); ctxFg.fill(); ctxFg.fillStyle = "#ffffff"; ctxFg.beginPath(); ctxFg.arc(powerUpFantasma.x+10, powerUpFantasma.y+10, 3, 0, Math.PI*2); ctxFg.fill(); }
+            if (comidaVeneno) { ctxFg.shadowColor = "#a600ff"; ctxFg.fillStyle = "#a600ff"; ctxFg.beginPath(); ctxFg.arc(comidaVeneno.x+10, comidaVeneno.y+10, 8, 0, Math.PI*2); ctxFg.fill(); ctxFg.strokeStyle = "#fff"; ctxFg.lineWidth = 2; ctxFg.beginPath(); ctxFg.moveTo(comidaVeneno.x+6, comidaVeneno.y+6); ctxFg.lineTo(comidaVeneno.x+14, comidaVeneno.y+14); ctxFg.moveTo(comidaVeneno.x+14, comidaVeneno.y+6); ctxFg.lineTo(comidaVeneno.x+6, comidaVeneno.y+14); ctxFg.stroke(); }
+
+            let esFiebre = multiplicadorCombo === 5;
+            let esFantasma = tiempoFantasmaRestante > 0 || esFiebre;
+            let parpadeo = !esFiebre && esFantasma && tiempoFantasmaRestante < 1500 && Math.floor(tiempoActual / 150) % 2 === 0;
+
+            snake.forEach((p, i) => {
+                if (parpadeo) return; 
+                let c = esFiebre ? "#ffffff" : (esFantasma ? "#00d4ff" : colorActual); 
+                ctxFg.shadowBlur = (i === 0 || esFantasma || esFiebre) ? 20 : 0; ctxFg.shadowColor = c;
+                ctxFg.fillStyle = i === 0 ? c : hexToRgbA(c, esFantasma ? 0.4 : 1.0);
+                ctxFg.beginPath(); ctxFg.roundRect(p.x+1, p.y+1, tamañoCuadro-2, tamañoCuadro-2, 4); ctxFg.fill();
+                
+                if (i === 0) {
+                    ctxFg.shadowBlur = 0; ctxFg.fillStyle = esFantasma ? (esFiebre ? "#ff4c4c" : "#fff") : "#000"; 
+                    let oX1, oY1, oX2, oY2, sep = 4;
+                    if (dx > 0) { oX1 = p.x + 14; oY1 = p.y + sep; oX2 = p.x + 14; oY2 = p.y + tamañoCuadro - sep; } else if (dx < 0) { oX1 = p.x + 6; oY1 = p.y + sep; oX2 = p.x + 6; oY2 = p.y + tamañoCuadro - sep; } else if (dy > 0) { oX1 = p.x + sep; oY1 = p.y + 14; oX2 = p.x + tamañoCuadro - sep; oY2 = p.y + 14; } else { oX1 = p.x + sep; oY1 = p.y + 6; oX2 = p.x + tamañoCuadro - sep; oY2 = p.y + 6; }
+                    ctxFg.beginPath(); ctxFg.arc(oX1, oY1, 2, 0, Math.PI*2); ctxFg.fill(); ctxFg.beginPath(); ctxFg.arc(oX2, oY2, 2, 0, Math.PI*2); ctxFg.fill();
+                }
+            });
+            ctxFg.shadowBlur = 0;
+
+            for(let i = 0; i < POOL_SIZE; i++) {
+                let p = poolParticulas[i];
+                if(p.activa) {
+                    p.x += p.vx; p.y += p.vy; p.vida -= 0.03; if(p.vida <= 0) { p.activa = false; continue; }
+                    ctxFg.globalAlpha = p.vida; ctxFg.fillStyle = p.color; ctxFg.beginPath(); ctxFg.arc(p.x, p.y, p.tam, 0, Math.PI*2); ctxFg.fill();
+                }
+            }
+
+            ctxFg.textAlign = "center"; ctxFg.font = "bold 16px 'Segoe UI'";
+            for(let i = textosFlotantes.length - 1; i >= 0; i--) {
+                let t = textosFlotantes[i]; t.y -= 0.6; t.vida -= 0.015; 
+                if(t.vida <= 0) { textosFlotantes.splice(i, 1); continue; }
+                ctxFg.globalAlpha = t.vida; ctxFg.fillStyle = t.color; ctxFg.shadowBlur = 5; ctxFg.shadowColor = "#000"; 
+                ctxFg.fillText(t.texto, t.x, t.y);
+            }
+
+            ctxFg.globalAlpha = 1.0; ctxFg.shadowBlur = 0; ctxFg.restore(); 
+        }
+
+        function hexToRgbA(hex, alpha){ let c; if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)){ c = hex.substring(1).split(''); if(c.length== 3){ c= [c[0], c[0], c[1], c[1], c[2], c[2]]; } c = '0x'+c.join(''); return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+','+alpha+')'; } return hex; }
+
+        function finJuego() {
+            enJuego = false; vibracionPantalla = 25; barraEstado.style.visibility = "hidden"; 
+            snake.forEach(parte => { activarParticulas(parte.x, parte.y, colorActual, 5, 1.5, 3); }); snake = []; 
+            dibujarCapaFrente(performance.now()); reproducirSonido('perder'); 
+            cajaComboDOM.classList.remove('fiebre-activa'); capaOscuridad.style.opacity = "0";
+            setTimeout(() => { 
+                let textoFinal = `Puntos: ${puntos} | Combo Max: x${multiplicadorCombo}`;
+                if (puntos > record) { record = puntos; localStorage.setItem("snakeRecordUltimateDef", record); recDOM.innerText = record; textoFinal = `🏆 ¡NUEVO RÉCORD! 🏆<br>${puntos} puntos`; }
+                document.getElementById("texto-puntaje-final").innerHTML = textoFinal; document.getElementById("pantalla-fin").classList.remove("oculto"); 
+            }, 1000); 
+        }
+
+        function pausarJuego() {
+            if (!enJuego) return; enPausa = !enPausa; const pp = document.getElementById("pantalla-pausa");
+            if (enPausa) { pp.classList.remove("oculto"); } else { pp.classList.add("oculto"); let t = performance.now(); ultimoTiempoLogica = t; ultimoTiempoRender = t; requestAnimationFrame(buclePrincipal); }
+        }
+
+        document.addEventListener("keydown", (e) => {
+            if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) e.preventDefault();
+            if (e.key === " ") { pausarJuego(); return; }
+            if (enPausa || !enJuego) return;
+            
+            let ref = colaInputs.length > 0 ? colaInputs[colaInputs.length - 1] : {dx: dx, dy: dy};
+            let nDx = null, nDy = null;
+            
+            if (e.key === "ArrowUp" && ref.dy === 0) { nDx = 0; nDy = -tamañoCuadro; }
+            if (e.key === "ArrowDown" && ref.dy === 0) { nDx = 0; nDy = tamañoCuadro; }
+            if (e.key === "ArrowLeft" && ref.dx === 0) { nDx = -tamañoCuadro; nDy = 0; }
+            if (e.key === "ArrowRight" && ref.dx === 0) { nDx = tamañoCuadro; nDy = 0; }
+            
+            if (nDx !== null && colaInputs.length < 2) { colaInputs.push({dx: nDx, dy: nDy}); }
+        });
+
+        const vincularBotonMobile = (id, bDx, bDy) => {
+            document.getElementById(id).addEventListener('touchstart', (e) => {
+                e.preventDefault(); if (enPausa || !enJuego) return;
+                let ref = colaInputs.length > 0 ? colaInputs[colaInputs.length - 1] : {dx: dx, dy: dy};
+                if ((bDx !== 0 && ref.dx === 0) || (bDy !== 0 && ref.dy === 0)) { if (colaInputs.length < 2) colaInputs.push({dx: bDx, dy: bDy}); }
+            }, {passive: false});
+        };
+        vincularBotonMobile('btn-up', 0, -tamañoCuadro); vincularBotonMobile('btn-down', 0, tamañoCuadro);
+        vincularBotonMobile('btn-left', -tamañoCuadro, 0); vincularBotonMobile('btn-right', tamañoCuadro, 0);
+        document.getElementById("contenedor-juego").addEventListener('touchstart', (e) => { if(enJuego) pausarJuego(); }, {passive: true});
+    </script>
+</body>
+</html>
